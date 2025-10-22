@@ -1,0 +1,66 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+R jupyter env named r_tcga with R kernel and TCGAbiolinks installed.
+
+%runscript
+    if [ $# -ne 1 ]; then
+    	echo "Please provide an input python script and an output file path."
+	exit 1
+    fi
+    source activate r_tcga
+    Rscript $1
+
+%environment
+    CONDA_DIR=/opt/conda
+    CONDA_SRC=$CONDA_DIR/etc/profile.d/conda.sh
+    . $CONDA_SRC
+    conda activate r_tcga
+    export CONDA_DIR CONDA_SRC
+
+%post
+    apt-get update -qq
+    apt-get install -q -y g++ gcc unzip gzip \
+        libcurl4-openssl-dev \
+        libxml2 libxml2-dev \
+        ca-certificates wget 
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --ca-directory=/usr/ssl/certs -O ~/miniconda.sh
+    bash ~/miniconda.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    . /opt/conda/etc/profile.d/conda.sh
+    conda update conda
+    conda create -n r_tcga
+    conda activate r_tcga
+    # conda install conda-libmamba-solver
+    # conda config --set solver libmamba
+    conda install -c conda-forge r-recommended r-irkernel r-rcurl r-devtools r-biocmanager \
+		         r-rvest r-xml2 r-XML r-httr -y
+    conda install jupyterlab -y 
+    # R -e "install.packages('rvest',repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    # R -e "install.packages('httr',repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    # R -e "install.packages('xml2',repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    # R -e "install.packages('RCurl',repos='http://lib.stat.cmu.edu/R/CRAN/')"
+
+    # R -e "install.packages('BiocManager', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    # R -e "install.packages('IRkernel', repos='http://lib.stat.cmu.edu/R/CRAN/')" 
+    # R -e "install.packages('dplyr', repos='http://lib.stat.cmu.edu/R/CRAN/')" 
+    # R -e "install.packages('readxl', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    # R -e "install.packages('openxlsx', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+
+    # Set up IR Kernel for use w/ jupyter
+    R -e "IRkernel::installspec(name = 'r_tcga' , displayname = 'R4 TCGAbiolinks (Sing)')" 
+
+    # Bioconductor installs
+    R -e "BiocManager::install('remotes')"
+    # R -e "BiocManager::install('SingleCellExperiment')"
+    # R -e "BiocManager::install('edgeR')"
+    R -e "BiocManager::install('BioinformaticsFMRP/TCGAbiolinksGUI.data')"
+    R -e "BiocManager::install('BioinformaticsFMRP/TCGAbiolinks')"
+
+    # devtools / github installs:
+
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    rm ~/miniconda.sh

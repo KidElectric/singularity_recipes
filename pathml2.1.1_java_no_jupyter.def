@@ -1,0 +1,49 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+Pathml base in env named py310
+
+%runscript
+    if [ $# -ne 2 ]; then
+    	echo "Please provide an input python script and an output file path."
+	exit 1
+    fi
+    source activate py39
+    python $1 $2
+
+%environment
+    export PATH=/opt/conda/envs/py39/bin:$PATH
+
+%post
+    apt-get update -qq
+    apt-get install -q -y openslide-tools g++ gcc \
+	libblas-dev libpixman-1-0 liblapack-dev python3-opencv \
+        ffmpeg libsm6 libxext6 unzip gzip ca-certificates wget texlive-xetex
+    #echo "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> /environment
+    #echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> /environment
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --ca-directory=/usr/ssl/certs -O ~/miniconda.sh
+    bash ~/miniconda.sh -b -p /opt/conda
+    . /opt/conda/etc/profile.d/conda.sh
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+    conda create -n py39 python=3.9 -y
+    conda activate py39
+    conda install -n base conda-libmamba-solver
+    conda config --set solver libmamba
+    conda install -c conda-forge 'openjdk<=18.0' -y
+    #    conda install -c pytorch pytorch torchvision torchaudio cudatoolkit=11.3
+    #export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+    #export CFLAGS="-I$JAVA_HOME/include -I$JAVA_HOME/include/linux"
+    pip install pathml
+    #pip install timm
+    #pip install openpyxl
+    #pip install geojsoncontour
+    #pip install cv2geojson
+    conda install -c conda-forge geojson -y
+    pip install cv2geojson 
+    pip install geojsoncontour
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    rm ~/miniconda.sh

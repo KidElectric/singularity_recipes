@@ -1,0 +1,40 @@
+BootStrap: docker
+From: ubuntu:latest
+
+%help
+Base with Anaconda3-2020.02 and env named py38 with goodies
+
+%runscript
+    echo "This is what happens when you run the container..."
+%files
+    Miniconda3-latest-Linux-x86_64.sh 
+%environment
+    CONDA_DIR=/opt/conda
+    export CONDA_DIR
+
+%post
+    apt-get update -qq
+    apt-get install -y -q --no-install-recommends \
+	 wget \
+         vim \
+	 bzip2 \
+         unzip 
+    #wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+    #bash ~/miniconda.sh -b -p /opt/conda
+    bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    echo '. /opt/conda/etc/profile.d/conda.sh' >> $SINGULARITY_ENVIRONMENT
+    . /opt/conda/etc/profile.d/conda.sh
+    conda create -n py38 python=3.8 -y
+    conda activate py38
+    conda install scipy ipykernel #seaborn numpy scipy matplotlib scikit-learn -y
+    conda install -c conda-forge jupyterlab -y
+    python -m ipykernel install --name py38_sing --display-name "Python (py38_sing)"
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm  /var/lib/singularity/mnt/container/
+%test
+    echo "test"
+    #source activate py38
+    #python -c "import numpy as np"

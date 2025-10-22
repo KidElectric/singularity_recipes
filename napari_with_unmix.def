@@ -1,0 +1,44 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+Napari base in env named py38
+
+%runscript
+    export DISPLAY=$(awk '/nameserver / {print $2; exit}' /etc/resolv.conf 2>/dev/null):0
+    exec /opt/conda/envs/py38/bin/napari
+
+%environment
+    CONDA_DIR=/opt/conda
+    CONDA_SRC=$CONDA_DIR/etc/profile.d/conda.sh
+    . $CONDA_SRC
+    export CONDA_DIR CONDA_SRC
+    export RUNLEVEL=3
+    export LIBGL_ALWAYS_INDIRECT=0
+    export XDG_RUNTIME_DIR=/opt/temp
+    
+%post
+    apt-get update -qq
+    apt-get install -q -y openslide-tools g++ gcc \
+	libblas-dev liblapack-dev python3-opencv \
+	unzip gzip ca-certificates wget xauth
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --ca-directory=/usr/ssl/certs -O ~/miniconda.sh
+    bash ~/miniconda.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    . /opt/conda/etc/profile.d/conda.sh
+    mkdir /opt/temp
+    conda create -n py38 python=3.9 -y
+    conda install -n base conda-libmamba-solver
+    conda config --set solver libmamba
+    conda activate py38
+    conda install -c conda-forge napari pyqt
+    conda install pytorch torchvision torchaudio cudatoolkit=11.6 -c pytorch
+    pip install napari-wsi
+    pip install napari-bioformats
+    pip install napari-tifffile
+    pip install napari-aicsimageio
+    pip install napari-PICASSO
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    rm ~/miniconda.sh

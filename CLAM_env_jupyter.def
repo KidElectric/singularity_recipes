@@ -1,0 +1,43 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+CLAM self supervised classifier via https://github.com/mahmoodlab/CLAM/blob/master/docs/INSTALLATION.md
+%files
+    /home/brian/singularity/recipes/environment.yml /opt
+%runscript
+    if [ $# -ne 2 ]; then
+    	echo "Please provide an input python script and an output file path."
+	exit 1
+    fi
+    source activate py38
+    python $1 $2
+
+%environment
+    CONDA_DIR=/opt/conda
+    CONDA_SRC=$CONDA_DIR/etc/profile.d/conda.sh
+    . $CONDA_SRC
+    conda activate py38
+    export CONDA_DIR CONDA_SRC
+
+%post
+    apt-get update -qq
+    apt-get install -q -y openslide-tools g++ gcc git wget
+#	libblas-dev liblapack-dev python3-opencv \
+#	unzip gzip ca-certificates wget 
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --ca-directory=/usr/ssl/certs -O ~/miniconda.sh
+    bash ~/miniconda.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    . /opt/conda/etc/profile.d/conda.sh
+    git clone https://github.com/mahmoodlab/CLAM.git
+    git clone https://github.com/oval-group/smooth-topk.git
+    conda env create -n py38 -f opt/environment.yml 
+    conda activate py38
+    python ./smooth-topk/setup.py install
+    conda install -c conda-forge jupyterlab -y
+    pip install openpyxl
+    python -m ipykernel install --name py38_sing --display-name "Singularity (py38_sing)"
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    rm ~/miniconda.sh

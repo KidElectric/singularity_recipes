@@ -1,0 +1,3 @@
+BootStrap: docker
+From: camicroscope/iipimage:latest
+

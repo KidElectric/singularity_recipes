@@ -1,0 +1,42 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+PySAL spatial analysis package in base env named py38
+
+%runscript
+    if [ $# -ne 2 ]; then
+    	echo "Please provide an input python script and an output file path."
+	exit 1
+    fi
+    source activate py38
+    python $1 $2
+
+%environment
+    CONDA_DIR=/opt/conda
+    CONDA_SRC=$CONDA_DIR/etc/profile.d/conda.sh
+    . $CONDA_SRC
+    conda activate py38
+    export CONDA_DIR CONDA_SRC
+
+%post
+    apt-get update -qq
+    apt-get install -q -y --no-install-recommends \
+	g++ gcc python3-opencv \
+	unzip gzip feh ca-certificates wget 
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+	 --ca-directory=/usr/ssl/certs -O ~/miniconda.sh
+    bash ~/miniconda.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    . /opt/conda/etc/profile.d/conda.sh
+    conda create -n py38 python=3.8 -y
+    conda activate py38
+    conda install -c conda-forge pysal scikit-learn scikit-image jupyterlab matplotlib pandas -y
+    #conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+    conda install -c anaconda ipykernel scipy
+    pip install opencv-python-headless
+    python -m ipykernel install --name py38_sing --display-name "Singularity (py38_sing)"
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    rm ~/miniconda.sh

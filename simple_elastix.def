@@ -1,0 +1,54 @@
+BootStrap: docker
+From: chunglabmit/simpleelastix:latest
+
+%help
+Base with simpleelastix and env named py38 with goodies
+
+%runscript
+    echo "Installing and making simple elastix from docker, installing conda."
+%files
+    Miniconda3-latest-Linux-x86_64.sh 
+    #ALTERNATIVLEY IN %post RUN:
+    #wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+    #bash ~/miniconda.sh -b -p /opt/conda
+
+%environment
+    #CONDA_DIR=/opt/conda
+    #CONDA_SRC=/opt/conda/etc/profile.d/conda.sh
+    #export CONDA_DIR
+
+%post
+    apt-get update -qq
+    apt-get install -y -q --no-install-recommends \
+	 wget \
+         vim \
+	 bzip2 \
+         unzip 
+
+        
+    bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    echo '. /opt/conda/etc/profile.d/conda.sh' >> $SINGULARITY_ENVIRONMENT
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+
+
+
+    . /opt/conda/etc/profile.d/conda.sh
+    conda create -n py38 python=3.8 -y
+    conda activate py38
+    python /build/SimpleITK-build/Wrapping/Python/Packaging/setup.py install
+    #conda install scipy ipykernel seaborn numpy pandas matplotlib \
+    #	 scikit-learn scikit-image -y
+    #conda install -c conda-forge openslide
+    #conda install -c bioconda openslide-python
+    #conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch -y
+    #conda install -c conda-forge jupyterlab -y
+    #python -m ipykernel install --name py38_sing --display-name "Python (py38_sing)"
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm  Miniconda3-latest-Linux-x86_64.sh 
+%test
+    echo "test"
+    #source activate py38
+    #python -c "import numpy as np"

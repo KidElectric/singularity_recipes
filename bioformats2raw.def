@@ -1,0 +1,39 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+Deidentify .svs by splitting out series 0 object with biofmrats2raw in conda env named py38.
+see: https://github.com/glencoesoftware/bioformats2raw
+
+%runscript
+    if [ $# -ne 2 ]; then
+    	echo "Please provide an input *.svs file and an output OME-Tiff file path."
+	exit 1
+    fi
+    source activate py38
+    bioformats2raw $1 $2 --series 0
+    raw2ometiff $2 $2.ome.tif
+
+%environment
+    CONDA_DIR=/opt/conda
+    CONDA_SRC=$CONDA_DIR/etc/profile.d/conda.sh
+    . $CONDA_SRC
+    conda activate py38
+    export CONDA_DIR CONDA_SRC
+
+%post
+    apt-get update -qq
+    apt-get install -q -y --no-install-recommends \
+	openjdk-8-jdk ca-certificates wget
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+	 --ca-directory=/usr/ssl/certs -O ~/miniconda.sh
+    bash ~/miniconda.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    . /opt/conda/etc/profile.d/conda.sh
+    conda create -n py38 python=3.8 -y
+    conda activate py38
+    conda install -c ome bioformats2raw raw2ometiff
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    rm ~/miniconda.sh

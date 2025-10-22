@@ -1,0 +1,50 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+timm, pytorch lightning, timm and huggingface installed in env named py310
+
+%runscript
+    if [ $# -ne 2 ]; then
+    	echo "Please provide an input python script and an output file path."
+	exit 1
+    fi
+    /opt/conda/envs/py310/bin/python $1 $2
+
+%environment
+    CONDA_DIR=/opt/conda
+    CONDA_SRC=$CONDA_DIR/etc/profile.d/conda.sh
+    . $CONDA_SRC
+    conda activate py310
+    export CONDA_DIR CONDA_SRC
+
+%post
+    apt-get update -qq
+    apt-get install -q -y g++ gcc \
+	libblas-dev libpng-dev libjpeg-dev zlib1g-dev liblapack-dev \
+	python3-opencv unzip gzip ca-certificates wget 
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --ca-directory=/usr/ssl/certs -O ~/miniconda.sh
+    bash ~/miniconda.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    . /opt/conda/etc/profile.d/conda.sh
+    conda create -n py310 python=3.10 -y
+    conda activate py310
+    conda install -c conda-forge nodejs jupyterlab \
+	zarr ipympl scanpy python-igraph umap-learn \
+	leidenalg scikit-learn matplotlib python-annoy -y
+    pip install openpyxl
+    pip install scanpy
+    pip install louvain
+    pip install dask==2024.11.2
+    pip install "spatialdata>=0.2.5" ome-zarr>=0.8.4
+    pip install squidpy
+    pip install spatialdata-io
+    pip install spatialdata-plot
+    pip install scanorama
+    pip install spatialde
+    conda install -c anaconda ipykernel seaborn -y
+    python -m ipykernel install --name scanpy310 --display-name "ScanpyST (scanpy310)"
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    rm ~/miniconda.sh

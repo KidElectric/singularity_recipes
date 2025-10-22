@@ -1,0 +1,16 @@
+Bootstrap: docker
+From: ubuntu:latest
+
+%runscript
+    cd /qupath/build/dist
+    ./QuPath
+
+%post
+    mkdir /qupath
+    cd /qupath
+    apt-get update
+    apt-get install -y git xz-utils default-jre
+    git clone https://github.com/qupath/qupath
+    cd qupath
+    ./gradlew clean jpackage
+

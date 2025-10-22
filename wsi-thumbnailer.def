@@ -1,0 +1,41 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+Base with pyvips in env named py38.
+wsi thumbnailer via pyvips in python3
+apptainer/singularity run --bind /mnt/d/working_data/test/:/mnt ./wsi-thumbnailer.sif /mnt 500
+
+%files
+    /home/brian/scripts/wsi_tools/vipsthumb_general.py /opt
+
+%runscript
+    if [ $# -ne 3 ]; then
+        echo "Please provide 3 inputs: a WSI directory (str), desired .jpg thumbnail output width (pixels) and WSI file format (tiff,svs etc)."
+        exit 1
+    fi
+    /opt/conda/envs/py38/bin/python -u /opt/vipsthumb_general.py $1 $2
+
+
+%environment
+    CONDA_DIR=/opt/conda
+    CONDA_SRC=/opt/conda/etc/profile.d/conda.sh
+    export CONDA_DIR CONDA_SRC
+
+%post
+    # mkdir /opt/repos/rbao_000
+    apt-get update -qq
+    apt-get install -q -y \
+        unzip gzip ca-certificates wget
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --ca-directory=/usr/ssl/certs -O ~/miniconda.sh
+    # git clone git@github.com:KidElectric/wsi_tools.git /opt/repos #will not work while repo is private
+    bash ~/miniconda.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    . /opt/conda/etc/profile.d/conda.sh
+    conda create -n py38 python=3.8 -y
+    conda activate py38
+    conda install -c conda-forge pyvips -y 
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    rm ~/miniconda.sh

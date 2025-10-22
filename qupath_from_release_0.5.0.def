@@ -1,0 +1,15 @@
+Bootstrap: docker
+From: ubuntu:latest
+
+%runscript
+    /qupath/QuPath/bin/QuPath $1
+
+%post
+    mkdir /qupath
+    cd /qupath
+    apt-get update
+    apt-get install -y wget xz-utils default-jre
+    wget https://github.com/qupath/qupath/releases/download/v0.5.0/QuPath-0.5.0-Linux.tar.xz
+    tar -xvf ./QuPath-0.5.0-Linux.tar.xz
+    chmod u+x /qupath/QuPath/bin/QuPath
+    rm ./QuPath-0.5.0-Linux.tar.xz

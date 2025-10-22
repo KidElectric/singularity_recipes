@@ -1,0 +1,74 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+R jupyter env named r_seurat
+
+%runscript
+    if [ $# -ne 1 ]; then
+    	echo "Please provide an input python script and an output file path."
+	exit 1
+    fi
+    source activate r_seurat
+    Rscript $1
+
+%environment
+    CONDA_DIR=/opt/conda
+    CONDA_SRC=$CONDA_DIR/etc/profile.d/conda.sh
+    . $CONDA_SRC
+    conda activate r_seurat
+    export CONDA_DIR CONDA_SRC
+
+%post
+    apt-get update -qq
+    apt-get install -q -y g++ gcc unzip gzip \
+        ca-certificates wget libfontconfig1-dev \
+        libharfbuzz-dev libfribidi-dev libfreetype6-dev \
+        libpng-dev libtiff5-dev libjpeg-dev \
+        libbz2-dev liblzma-dev libcurl4-openssl-dev \
+	libunwind-dev libxrender-dev texlive-xetex
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --ca-directory=/usr/ssl/certs -O ~/miniconda.sh
+    bash ~/miniconda.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    . /opt/conda/etc/profile.d/conda.sh
+    conda update conda
+    conda create -n r_seurat -c conda-forge -c bioconda r-seurat=4* -y
+    conda activate r_seurat
+    conda install -c conda-forge jupyterlab r-devtools r-lme4 r-cairo r-irkernel -y 
+    #conda install -c anaconda ipykernel
+    R -e "install.packages('BiocManager', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    R -e "install.packages('ggplot2', repos='http://lib.stat.cmu.edu/R/CRAN/')" 
+    R -e "install.packages('dplyr', repos='http://lib.stat.cmu.edu/R/CRAN/')" 
+    R -e "install.packages('Cairo', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    R -e "install.packages('ggpubr' ,repos='http://lib.stat.cmu.edu/R/CRAN/')" 
+    R -e "install.packages('patchwork', repos='http://lib.stat.cmu.edu/R/CRAN/')" 
+    R -e "install.packages('hdf5r', repos='http://lib.stat.cmu.edu/R/CRAN/')" 
+    R -e "install.packages('remotes', repos='http://lib.stat.cmu.edu/R/CRAN/')" 
+    R -e "install.packages('IRkernel', repos='http://lib.stat.cmu.edu/R/CRAN/')" 
+    R -e "install.packages('pheatmap', repos='http://lib.stat.cmu.edu/R/CRAN/')" 
+    R -e "install.packages('readxl', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    R -e "install.packages('openxlsx', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    R -e "install.packages('devtools', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    R -e "install.packages('repr', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    R -e "install.packages('ggrepel', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+    R -e "install.packages('RColorBrewer', repos='http://lib.stat.cmu.edu/R/CRAN/')"
+
+    # Set up IR Kernel for use w/ jupyter
+    R -e "IRkernel::installspec(name = 'r_seurat' , displayname = 'R4 seurat (Sing)')" 
+
+    # Bioconductor installs
+    R -e "BiocManager::install('SingleCellExperiment')"
+    R -e "BiocManager::install('scRNAseq')"
+    R -e "BiocManager::install('edgeR')"
+    R -e "BiocManager::install('SingleR')"
+    R -e "BiocManager::install('limma')"
+    R -e "BiocManager::install('SpatialDecon')"
+
+    # devtools / github installs:
+    R -e "devtools::install_github('jokergoo/ComplexHeatmap')"
+    R -e "devtools::install_github('sqjin/CellChat')"
+
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    rm ~/miniconda.sh

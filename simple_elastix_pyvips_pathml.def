@@ -1,0 +1,28 @@
+BootStrap: localimage 
+From: /home/brian/singularity/images/simple_elastix.simg
+
+%help
+Base with simpleelastix, and env named py38 with goodies
+
+%runscript
+    echo "Installing and making simple elastix from local image with conda already in it."
+
+%environment
+    CONDA_DIR=/opt/conda
+    CONDA_SRC=/opt/conda/etc/profile.d/conda.sh
+    export CONDA_DIR CONDA_SRC
+
+%post
+    apt-get update -qq
+    apt-get install -y openslide-tools g++ gcc \
+	libblas-dev liblapack-dev python3-opencv \
+	unzip gzip 
+    . /opt/conda/etc/profile.d/conda.sh
+    conda activate py38
+    conda install -c conda-forge numpy openjdk==8.0.152 jupyterlab pyvips -y #numpy=1.19.5
+    conda install ipykernel pandas matplotlib -y
+    pip install pathml
+    python -m ipykernel install --name py38_sing --display-name "Singularity (py38_sing)"
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*

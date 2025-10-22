@@ -1,0 +1,48 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+pytorch 2.6 and torch_geometric for CUDA 12.4 installed in env named py311
+
+%runscript
+    if [ $# -ne 2 ]; then
+    	echo "Please provide an input python script and an output file path."
+	exit 1
+    fi
+    source activate py311
+    python $1 $2
+
+%environment
+    CONDA_DIR=/opt/conda
+    CONDA_SRC=$CONDA_DIR/etc/profile.d/conda.sh
+    . $CONDA_SRC
+    conda activate py311
+    export CONDA_DIR CONDA_SRC
+
+%post
+    apt-get update -qq
+    apt-get install -q -y g++ gcc \
+	libblas-dev libpng-dev libjpeg-dev zlib1g-dev liblapack-dev \
+	unzip gzip ca-certificates wget #python3-opencv
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh --ca-directory=/usr/ssl/certs -O ~/miniconda.sh
+    bash ~/miniconda.sh -b -p /opt/conda
+    echo 'export PATH=/opt/conda/bin:/opt/conda/condabin:$PATH' >> $SINGULARITY_ENVIRONMENT
+    . /opt/conda/etc/profile.d/conda.sh
+    #conda config --remove channels main r
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+    conda create -n py311 -c conda-forge python=3.11 -y
+    conda activate py311
+    #conda install -n base conda-libmamba-solver
+    #conda config --set solver libmamba
+    conda install pytorch==2.5.0 torchvision==0.20.0 torchaudio==2.5.0 pytorch-cuda=12.4 -c pytorch -c nvidia
+    pip install torch_geometric
+    pip install torch_cluster torch-spline-conv torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.5.0+cu124
+    conda install -c conda-forge nodejs jupyterlab jupyter-resource-usage jupyterlab-nvdashboard jupyterlab-spreadsheet-editor ipympl -y
+    pip install openpyxl
+    conda install -c conda-forge ipykernel matplotlib seaborn scikit-learn networkx pyarrow anndata -y
+    python -m ipykernel install --name py311_sing --display-name "Singularity (py311_sing)"
+    conda clean --all
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    rm ~/miniconda.sh

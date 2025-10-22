@@ -1,0 +1,29 @@
+BootStrap: docker
+From: ubuntu:latest
+
+%help
+svs-deidentification package via python3
+apptainer/singularity run --bind /mnt/d/working_data/asinghi-068/deident_test/test/:/mnt ./svs-deident.sif /mnt
+
+%files
+    /home/brian/scripts/wsi_tools/bi_svs_deid.py /opt
+
+%runscript
+    if [ $# -ne 1 ]; then
+        echo "Please provide an .svs file path or directory with .svs files (str)."
+        exit 1
+    fi
+    python3 /opt/repos/svs-deident/bi_svs_deid.py $1
+
+%environment
+
+%post
+    mkdir /opt/repos
+    apt-get update -qq
+    apt-get install -y -q --no-install-recommends \
+	git python3 python3-pip libgl1 libglib2.0-0 ca-certificates
+    pip install Eel==0.12.2 PyQt5==5.14.0 PyQtWebEngine tinynumpy commonmark pyinstaller
+    git clone https://github.com/pearcetm/svs-deidentifier.git /opt/repos/svs-deident
+    mv /opt/bi_svs_deid.py /opt/repos/svs-deident/bi_svs_deid.py
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* 

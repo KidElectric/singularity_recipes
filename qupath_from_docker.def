@@ -1,0 +1,9 @@
+BootStrap: docker 
+From: ivazquez/qupath:latest
+
+%help
+QuPath image downloaded from docker hub:
+https://hub.docker.com/r/ivazquez/qupath
+
+Not sure what all is in here yet! -BI
+Another idea: conda install -c sdvillal qupath # i.e. sort of install from scratch using installer on conda

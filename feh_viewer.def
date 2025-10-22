@@ -1,0 +1,22 @@
+BootStrap: docker 
+From: ubuntu:latest
+
+%help
+Ubuntu with feh image viewer
+
+%runscript
+    if [ $# -ne 1 ]
+    then
+       echo "Attempt to use current directory."
+       use_dir=$PWD
+    else
+       use_dir=$1
+    fi
+    feh --keep-zoom-vp --image-bg white $use_dir
+
+%environment
+%post
+    apt-get update -qq
+    apt-get install -y -q --no-install-recommends ca-certificates feh
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*

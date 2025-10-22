@@ -1,0 +1,18 @@
+BootStrap: docker 
+From: marcbachmann/libvips:latest
+
+%help
+Contains libvips library. Can de-identify .svs and other processes.
+see: https://www.libvips.org/2020/06/18/What's-new-in-8.10.html
+https://forum.image.sc/t/remove-label-and-macro-from-a-wsi/45630/3
+
+%runscript
+    if [ $# -ne 2 ]; then
+    	echo "Please provide an input *.svs file and an output .tif file path."
+	exit 1
+    fi
+    vips copy $1 $2[pyramid,bigtiff,tile,compression=jpeg]
+
+%environment
+
+%post
