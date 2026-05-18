@@ -1,0 +1,84 @@
+Bootstrap: docker
+From: node:20-slim
+
+%post
+    # Install system dependencies for Conda and general tools
+    apt-get update && apt-get install -y \
+        wget \
+	curl \
+        bzip2 \
+        ca-certificates \
+        libglib2.0-0 \
+        libxext6 \
+	libgl1 \
+        fontconfig \
+	fonts-dejavu-core \
+	fonts-liberation \
+	libsm6 \
+        libxrender1 \
+        texlive-latex-recommended \
+        texlive-latex-extra \
+        texlive-fonts-recommended \
+        texlive-xetex \
+	chromium \
+        git \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Install Miniconda
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /miniconda.sh
+    bash /miniconda.sh -b -p /opt/conda
+    rm /miniconda.sh
+
+    # Add Conda to the system path
+    export PATH="/opt/conda/bin:$PATH"
+    QUARTO_VER="1.4.550"
+    curl -LO https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VER}/quarto-${QUARTO_VER}-linux-amd64.deb
+    dpkg -i quarto-${QUARTO_VER}-linux-amd64.deb
+    rm quarto-${QUARTO_VER}-linux-amd64.deb
+    mkdir -p /opt/home
+    chmod -R 777 /opt/home
+    export HOME=/opt/home
+    quarto install tinytex --no-prompt
+    quarto install chromium --no-prompt
+
+    # 3. Ensure everyone can read these
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+    conda create -n tools_env -y -c conda-forge \
+        nodejs \
+	jupyter
+
+    # Initialize Conda for shell interaction
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+
+    # Install Claude Code globally via npm
+    npm install -g @anthropic-ai/claude-code
+
+%environment
+    # Ensure Conda and Node are in the PATH when the container starts
+    export PATH="/opt/conda/bin:$PATH"
+    export CONDA_EXE="/opt/conda/bin/conda"
+    export CONDA_PREFIX="/opt/conda"
+    export CONDA_PYTHON_EXE="/opt/conda/bin/python"
+    export CONDA_PREFIX_TOOLS="/opt/conda/envs/tools_env"
+    export HOME="/tmp"
+
+    # Prepend the tools env to PATH so 'quarto' is always the first one found
+    export PATH="$CONDA_PREFIX_TOOLS/bin:$PATH"
+    export PATH="/opt/home/.TinyTeX/bin/x86_64-linux:$PATH"
+    export QUARTO_CHROMIUM="/usr/bin/chromium"
+    export QUARTO_R="/conda_envs/r_seuratr5.2/bin/R"
+    export QUARTO_DATA_PATH="/opt/home/.local/share/quarto"
+    export DENO_DIR="/tmp/deno_cache"
+    export QUARTO_DATA_DIR="/tmp/quarto_data"
+    export XDG_CACHE_HOME="/tmp/cache"
+%runscript
+    # Source conda to allow shell integration within the runscript
+    . /opt/conda/etc/profile.d/conda.sh
+    # If a specific project env is mounted/exists, prep it
+    if [ -d "/conda_envs/r_seurat5.2" ]; then
+        export PATH="/conda_envs/r_seurat5.2/bin:$PATH"
+        export R_HOME="/conda_envs/r_seurat5.2/lib/R"
+    fi
+    exec claude "$@"
